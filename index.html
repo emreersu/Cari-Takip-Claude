@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0f1420">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cari Takip">
+<title>Cari Takip</title>
+<style>
+:root{
+  --bg:#0f1420; --bg2:#161d2e; --card:#1b2436; --border:#2a3549;
+  --text:#e8ecf4; --muted:#8b95a8; --accent:#4c8dff;
+  --green:#2ecc71; --red:#ff5c5c; --yellow:#f5c542; --blue:#4c8dff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  overflow-x:hidden;}
+body{padding-bottom:70px;min-height:100vh;}
+h1,h2,h3{margin:0 0 8px;font-weight:600;}
+.page{padding:16px;max-width:640px;margin:0 auto;display:none;}
+.page.active{display:block;}
+.topbar{position:sticky;top:0;background:var(--bg);z-index:5;padding:14px 16px 8px;
+  max-width:640px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
+.topbar h1{font-size:19px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:14px;margin-bottom:12px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;}
+.stat .lbl{font-size:12px;color:var(--muted);margin-bottom:4px;}
+.stat .val{font-size:18px;font-weight:700;}
+.green{color:var(--green);} .red{color:var(--red);} .yellow{color:var(--yellow);} .blue{color:var(--blue);}
+.section-title{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+  margin:18px 0 8px;}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;
+  border-bottom:1px solid var(--border);}
+.row:last-child{border-bottom:none;}
+.row .name{font-weight:600;font-size:14px;}
+.row .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.row .amt{font-weight:700;font-size:14px;text-align:right;}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;margin-top:2px;}
+.badge.gecikmis{background:rgba(255,92,92,.15);color:var(--red);}
+.badge.yaklasan{background:rgba(245,197,66,.15);color:var(--yellow);}
+.badge.odendi{background:rgba(46,204,113,.15);color:var(--green);}
+.badge.kismi{background:rgba(76,141,255,.15);color:var(--blue);}
+.badge.bekliyor{background:rgba(139,149,168,.15);color:var(--muted);}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:20px 0;}
+.fab{position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;
+  background:var(--accent);color:#fff;font-size:28px;border:none;display:flex;
+  align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(76,141,255,.4);z-index:8;}
+.tabbar{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);
+  border-top:1px solid var(--border);display:flex;z-index:10;padding-bottom:env(safe-area-inset-bottom);}
+.tabbar button{flex:1;background:none;border:none;color:var(--muted);padding:10px 0 8px;
+  font-size:10px;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.tabbar button.active{color:var(--accent);}
+.tabbar button .ic{font-size:20px;}
+input,select,textarea{width:100%;background:var(--bg2);border:1px solid var(--border);
+  color:var(--text);border-radius:10px;padding:11px;font-size:14px;margin-bottom:10px;}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px;}
+.btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;
+  padding:13px;font-size:15px;font-weight:600;}
+.btn.secondary{background:var(--bg2);color:var(--text);border:1px solid var(--border);}
+.btn.danger{background:rgba(255,92,92,.15);color:var(--red);}
+.seg{display:flex;background:var(--bg2);border-radius:10px;padding:3px;margin-bottom:12px;}
+.seg button{flex:1;background:none;border:none;color:var(--muted);padding:9px;border-radius:8px;font-size:13px;font-weight:600;}
+.seg button.active{background:var(--accent);color:#fff;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20;display:none;
+  align-items:flex-end;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--bg);border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+  width:100%;max-width:640px;max-height:88vh;overflow-y:auto;}
+.modal h3{margin-bottom:14px;}
+.close-x{float:right;background:none;border:none;color:var(--muted);font-size:20px;}
+.pill-tabs{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;padding-bottom:2px;}
+.pill-tabs button{white-space:nowrap;background:var(--bg2);border:1px solid var(--border);
+  color:var(--muted);padding:7px 13px;border-radius:20px;font-size:12px;}
+.pill-tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.mini-hist{background:var(--bg2);border-radius:8px;padding:8px 10px;margin-top:6px;font-size:12px;color:var(--muted);}
+.progress{height:6px;background:var(--bg2);border-radius:4px;overflow:hidden;margin-top:6px;}
+.progress > div{height:100%;background:var(--accent);}
+a.linklike{color:var(--accent);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="topbar"><h1>📒 Cari Takip</h1></div>
+  <div style="padding:0 0 10px" id="dash-content"></div>
+</div>
+
+<!-- CARILER -->
+<div class="page" id="page-cariler">
+  <div class="topbar"><h1>Cariler</h1></div>
+  <div style="padding:0 16px 10px" class="seg" id="cari-filter-seg">
+    <button data-f="hepsi" class="active">Hepsi</button>
+    <button data-f="musteri">Müşteri</button>
+    <button data-f="tedarikci">Tedarikçi</button>
+  </div>
+  <div style="padding:0 16px" id="cariler-list"></div>
+</div>
+
+<!-- CARI DETAY -->
+<div class="page" id="page-cari-detay">
+  <div class="topbar"><button class="linklike" style="background:none;border:none" onclick="goTab('cariler')">← Geri</button></div>
+  <div style="padding:0 16px" id="cari-detay-content"></div>
+</div>
+
+<!-- FATURALAR -->
+<div class="page" id="page-faturalar">
+  <div class="topbar"><h1>Faturalar</h1></div>
+  <div style="padding:0 16px" class="pill-tabs" id="fatura-filter">
+    <button data-f="hepsi" class="active">Hepsi</button>
+    <button data-f="giden">Kestiklerim</button>
+    <button data-f="gelen">Gelenler</button>
+    <button data-f="gecikmis">Gecikmiş</button>
+    <button data-f="acik">Açık</button>
+  </div>
+  <div style="padding:0 16px" id="faturalar-list"></div>
+</div>
+
+<!-- TAHSILAT/ODEME -->
+<div class="page" id="page-tahsilat">
+  <div class="topbar"><h1>Tahsilat / Ödeme</h1></div>
+  <div style="padding:0 16px" id="tahsilat-list"></div>
+</div>
+
+<!-- RAPORLAR -->
+<div class="page" id="page-raporlar">
+  <div class="topbar"><h1>Raporlar</h1></div>
+  <div style="padding:0 16px" id="raporlar-content"></div>
+</div>
+
+<button class="fab" id="fabBtn">+</button>
+
+<div class="tabbar">
+  <button data-tab="dashboard" class="active"><span class="ic">🏠</span>Özet</button>
+  <button data-tab="cariler"><span class="ic">👥</span>Cariler</button>
+  <button data-tab="faturalar"><span class="ic">🧾</span>Faturalar</button>
+  <button data-tab="tahsilat"><span class="ic">💸</span>Hareketler</button>
+  <button data-tab="raporlar"><span class="ic">📊</span>Rapor</button>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modalCari">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('modalCari')">✕</button>
+    <h3>Yeni Cari</h3>
+    <label>Ad Soyad / Firma</label><input id="c-ad" placeholder="Örn. ABC Elektrik">
+    <label>Tip</label>
+    <div class="seg" id="c-tip-seg"><button data-v="musteri" class="active">Müşteri</button><button data-v="tedarikci">Tedarikçi</button></div>
+    <label>Telefon (opsiyonel)</label><input id="c-tel" placeholder="05xx xxx xx xx">
+    <label>Not (opsiyonel)</label><textarea id="c-not" rows="2"></textarea>
+    <button class="btn" onclick="saveCari()">Kaydet</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalFatura">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('modalFatura')">✕</button>
+    <h3>Yeni Fatura</h3>
+    <label>Yön</label>
+    <div class="seg" id="f-yon-seg">
+      <button data-v="giden" class="active">Kestiğim (Alacak)</button>
+      <button data-v="gelen">Gelen (Borç)</button>
+    </div>
+    <label>Cari</label><select id="f-cari"></select>
+    <label>Fatura No</label><input id="f-no" placeholder="Örn. 2026-125">
+    <label>İçerik / Açıklama <span style="opacity:.6">(her satıra bir kalem yazabilirsin)</span></label>
+    <textarea id="f-icerik" rows="4" placeholder="Örn.&#10;300 adet MCCB 400A&#10;50 adet kablo kanalı&#10;12 adet pano kilidi"></textarea>
+    <label>Fatura Tarihi</label><input type="date" id="f-tarih">
+    <label>Vade Tarihi</label><input type="date" id="f-vade">
+    <label>Tutar (TL)</label><input type="number" id="f-tutar" placeholder="0">
+    <button class="btn" onclick="saveFatura()">Kaydet</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalOdeme">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('modalOdeme')">✕</button>
+    <h3 id="odeme-title">Ödeme / Tahsilat Ekle</h3>
+    <div id="odeme-fatura-info" class="mini-hist" style="margin-bottom:12px"></div>
+    <label>Tarih</label><input type="date" id="o-tarih">
+    <label>Tutar (TL)</label><input type="number" id="o-tutar" placeholder="0">
+    <label>Yöntem</label>
+    <select id="o-yontem"><option>Banka</option><option>Nakit</option><option>Kredi Kartı</option><option>Diğer</option></select>
+    <label>Açıklama (opsiyonel)</label><input id="o-aciklama">
+    <button class="btn" onclick="saveOdeme()">Kaydet</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalYeniHareket">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('modalYeniHareket')">✕</button>
+    <h3>Ne eklemek istersin?</h3>
+    <button class="btn" style="margin-bottom:10px" onclick="closeModal('modalYeniHareket');openModal('modalFatura');fillCariSelect();">🧾 Yeni Fatura</button>
+    <button class="btn secondary" style="margin-bottom:10px" onclick="closeModal('modalYeniHareket');openOdemeGeneric();">💸 Tahsilat / Ödeme Kaydet</button>
+    <button class="btn secondary" onclick="closeModal('modalYeniHareket');openModal('modalCari');">👤 Yeni Cari</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalFaturaSecim">
+  <div class="modal">
+    <button class="close-x" onclick="closeModal('modalFaturaSecim')">✕</button>
+    <h3>Hangi Fatura İçin?</h3>
+    <div id="fatura-secim-list"></div>
+  </div>
+</div>
+
+<script>
+// ---------- STORAGE ----------
+const STORE_KEY='cari_takip_v1';
+function load(){
+  try{const raw=localStorage.getItem(STORE_KEY); if(raw) return JSON.parse(raw);}catch(e){}
+  return {cariler:[], faturalar:[]};
+}
+function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+let state = load();
+let currentCariDetayId = null;
+
+// ---------- HELPERS ----------
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function nl2br(s){ return esc(s).replace(/\n/g,'<br>'); }
+function money(n){ n=Number(n)||0; return n.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' TL'; }
+function today(){ return new Date().toISOString().slice(0,10); }
+function dayDiff(dateStr){ const d1=new Date(dateStr+'T00:00'); const d2=new Date(today()+'T00:00'); return Math.round((d1-d2)/86400000); }
+function fmtDate(d){ if(!d) return '-'; const p=d.split('-'); return p[2]+'.'+p[1]+'.'+p[0]; }
+function odenen(f){ return (f.odemeler||[]).reduce((s,o)=>s+Number(o.tutar),0); }
+function kalan(f){ return Math.round((Number(f.tutar)-odenen(f))*100)/100; }
+function faturaDurum(f){
+  const k=kalan(f);
+  if(k<=0.001) return 'odendi';
+  if(odenen(f)>0) return 'kismi';
+  return 'bekliyor';
+}
+function cariAd(id){ const c=state.cariler.find(x=>x.id===id); return c?c.ad:'(silinmiş cari)'; }
+function cariById(id){ return state.cariler.find(x=>x.id===id); }
+
+// cari bakiyesi: pozitif = alacaklıyız (musteri borçlu), negatif = biz borçluyuz
+function cariBakiye(cariId){
+  let bakiye=0;
+  state.faturalar.filter(f=>f.cariId===cariId).forEach(f=>{
+    const k=kalan(f);
+    bakiye += f.yon==='giden' ? k : -k;
+  });
+  return Math.round(bakiye*100)/100;
+}
+
+// ---------- NAV ----------
+function goTab(tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  render();
+}
+document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click',()=>goTab(b.dataset.tab)));
+
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.getElementById('fabBtn').addEventListener('click',()=>openModal('modalYeniHareket'));
+
+// ---------- RENDER ROOT ----------
+function render(){
+  renderDashboard();
+  renderCariler();
+  renderFaturalar();
+  renderTahsilat();
+  renderRaporlar();
+  if(currentCariDetayId) renderCariDetay(currentCariDetayId);
+}
+
+// ---------- DASHBOARD ----------
+function renderDashboard(){
+  const el=document.getElementById('dash-content');
+  let toplamAlacak=0, toplamBorc=0, gecmisAlacak=0, gecmisBorc=0;
+  let yaklasanAlacak=[], yaklasanBorc=[], gecmisAlacakList=[], gecmisBorcList=[];
+  let buAyKesilen=0, buAyGelen=0;
+  const ym = today().slice(0,7);
+  state.faturalar.forEach(f=>{
+    const k=kalan(f);
+    if(f.tarih && f.tarih.slice(0,7)===ym){
+      if(f.yon==='giden') buAyKesilen+=Number(f.tutar); else buAyGelen+=Number(f.tutar);
+    }
+    if(k<=0.001) return;
+    const dd=dayDiff(f.vade);
+    if(f.yon==='giden'){
+      toplamAlacak+=k;
+      if(dd<0){ gecmisAlacak+=k; gecmisAlacakList.push({f,dd,k}); }
+      else if(dd<=7){ yaklasanAlacak.push({f,dd,k}); }
+    } else {
+      toplamBorc+=k;
+      if(dd<0){ gecmisBorc+=k; gecmisBorcList.push({f,dd,k}); }
+      else if(dd<=7){ yaklasanBorc.push({f,dd,k}); }
+    }
+  });
+  const net = toplamAlacak-toplamBorc;
+  gecmisAlacakList.sort((a,b)=>a.dd-b.dd); gecmisBorcList.sort((a,b)=>a.dd-b.dd);
+  yaklasanAlacak.sort((a,b)=>a.dd-b.dd); yaklasanBorc.sort((a,b)=>a.dd-b.dd);
+
+  function list(items,tip){
+    if(!items.length) return '<div class="empty">Kayıt yok</div>';
+    return items.map(it=>{
+      const c=cariAd(it.f.cariId);
+      let sub = tip==='gecmis' ? Math.abs(it.dd)+' gün gecikmiş' : (it.dd===0?'Bugün vadesi':it.dd+' gün sonra');
+      return `<div class="row"><div><div class="name">${c}</div><div class="sub">${sub}</div></div><div class="amt ${it.f.yon==='giden'?'green':'red'}">${money(it.k)}</div></div>`;
+    }).join('');
+  }
+  // son islemler: son 5 odeme kayidi
+  let hareketler=[];
+  state.faturalar.forEach(f=>(f.odemeler||[]).forEach(o=>hareketler.push({f,o})));
+  hareketler.sort((a,b)=> (b.o.tarih||'').localeCompare(a.o.tarih||''));
+  hareketler=hareketler.slice(0,5);
+
+  el.innerHTML = `
+    <div class="grid2">
+      <div class="stat"><div class="lbl">🟢 Toplam Alacak</div><div class="val green">${money(toplamAlacak)}</div></div>
+      <div class="stat"><div class="lbl">🔴 Toplam Borç</div><div class="val red">${money(toplamBorc)}</div></div>
+    </div>
+    <div class="stat" style="margin-top:10px">
+      <div class="lbl">🔵 Net Cari Durum</div>
+      <div class="val ${net>=0?'green':'red'}">${net>=0?'+':''}${money(net)}</div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="stat"><div class="lbl">Bu Ay Kesilen Fatura</div><div class="val">${money(buAyKesilen)}</div></div>
+      <div class="stat"><div class="lbl">Bu Ay Gelen Fatura</div><div class="val">${money(buAyGelen)}</div></div>
+    </div>
+
+    <div class="section-title">🔴 Vadesi Geçmiş Alacaklar (${gecmisAlacakList.length})</div>
+    <div class="card">${list(gecmisAlacakList,'gecmis')}</div>
+
+    <div class="section-title">🔴 Vadesi Geçmiş Borçlar (${gecmisBorcList.length})</div>
+    <div class="card">${list(gecmisBorcList,'gecmis')}</div>
+
+    <div class="section-title">🟡 Yaklaşan Tahsilatlar (7 gün)</div>
+    <div class="card">${list(yaklasanAlacak,'yaklasan')}</div>
+
+    <div class="section-title">🟡 Yaklaşan Ödemeler (7 gün)</div>
+    <div class="card">${list(yaklasanBorc,'yaklasan')}</div>
+
+    <div class="section-title">Son İşlemler</div>
+    <div class="card">${hareketler.length? hareketler.map(h=>`<div class="row"><div><div class="name">${cariAd(h.f.cariId)}</div><div class="sub">${fmtDate(h.o.tarih)} · ${h.o.yontem}</div></div><div class="amt ${h.f.yon==='giden'?'green':'red'}">${h.f.yon==='giden'?'+':'-'}${money(h.o.tutar)}</div></div>`).join('') : '<div class="empty">Henüz işlem yok</div>'}</div>
+  `;
+}
+
+// ---------- CARILER ----------
+let cariFilter='hepsi';
+document.getElementById('cari-filter-seg').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  document.querySelectorAll('#cari-filter-seg button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); cariFilter=e.target.dataset.f; renderCariler();
+});
+function renderCariler(){
+  const el=document.getElementById('cariler-list');
+  let list=state.cariler;
+  if(cariFilter!=='hepsi') list=list.filter(c=>c.tip===cariFilter);
+  if(!list.length){ el.innerHTML='<div class="empty">Henüz cari eklenmedi. Sağ alttaki + ile ekleyebilirsin.</div>'; return; }
+  list = list.slice().sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
+  el.innerHTML = '<div class="card">' + list.map(c=>{
+    const b=cariBakiye(c.id);
+    return `<div class="row" style="cursor:pointer" onclick="openCariDetay('${c.id}')">
+      <div><div class="name">${c.ad}</div><div class="sub">${c.tip==='musteri'?'Müşteri':'Tedarikçi'}</div></div>
+      <div class="amt ${b>0?'green':(b<0?'red':'')}">${b===0?'0 TL':(b>0?'+':'')+money(b)}</div>
+    </div>`;
+  }).join('') + '</div>';
+}
+function openCariDetay(id){ currentCariDetayId=id; goTab('cari-detay'); renderCariDetay(id); }
+function renderCariDetay(id){
+  const c=cariById(id); if(!c){ goTab('cariler'); return; }
+  const faturalar=state.faturalar.filter(f=>f.cariId===id).sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+  const bakiye=cariBakiye(id);
+  document.getElementById('cari-detay-content').innerHTML = `
+    <h2>${c.ad}</h2>
+    <div class="sub" style="color:var(--muted);margin-bottom:10px">${c.tip==='musteri'?'Müşteri':'Tedarikçi'}${c.telefon?' · '+c.telefon:''}</div>
+    <div class="stat" style="margin-bottom:14px">
+      <div class="lbl">${bakiye>=0?'Sizden Alacağınız':'Ona Borcunuz'}</div>
+      <div class="val ${bakiye>0?'green':(bakiye<0?'red':'')}">${money(Math.abs(bakiye))}</div>
+    </div>
+    <button class="btn" onclick="preselectCari('${id}')" style="margin-bottom:14px">+ Bu Cariye Fatura Ekle</button>
+    <div class="section-title">Fatura Geçmişi</div>
+    ${faturalar.length? faturalar.map(f=>faturaCardHtml(f)).join('') : '<div class="empty">Fatura yok</div>'}
+    ${c.not? `<div class="section-title">Not</div><div class="card">${c.not}</div>`:''}
+    <button class="btn danger" style="margin-top:16px" onclick="deleteCari('${id}')">Cariyi Sil</button>
+  `;
+}
+function deleteCari(id){
+  if(!confirm('Bu cariyi ve tüm faturalarını silmek istiyor musun?')) return;
+  state.cariler=state.cariler.filter(c=>c.id!==id);
+  state.faturalar=state.faturalar.filter(f=>f.cariId!==id);
+  save(); currentCariDetayId=null; goTab('cariler');
+}
+function preselectCari(id){ openModal('modalFatura'); fillCariSelect(id); }
+
+// cari modal
+document.getElementById('c-tip-seg').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  document.querySelectorAll('#c-tip-seg button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+});
+function saveCari(){
+  const ad=document.getElementById('c-ad').value.trim();
+  if(!ad){ alert('Ad girin'); return; }
+  const tip=document.querySelector('#c-tip-seg button.active').dataset.v;
+  const tel=document.getElementById('c-tel').value.trim();
+  const not=document.getElementById('c-not').value.trim();
+  state.cariler.push({id:uid(), ad, tip, telefon:tel, not});
+  save();
+  document.getElementById('c-ad').value=''; document.getElementById('c-tel').value=''; document.getElementById('c-not').value='';
+  closeModal('modalCari'); render();
+}
+
+// ---------- FATURALAR ----------
+function fillCariSelect(preId){
+  const sel=document.getElementById('f-cari');
+  sel.innerHTML = state.cariler.slice().sort((a,b)=>a.ad.localeCompare(b.ad,'tr'))
+    .map(c=>`<option value="${c.id}" ${c.id===preId?'selected':''}>${c.ad} (${c.tip==='musteri'?'Müşteri':'Tedarikçi'})</option>`).join('');
+  document.getElementById('f-tarih').value=today();
+  if(!state.cariler.length) sel.innerHTML='<option value="">Önce cari ekleyin</option>';
+}
+document.getElementById('f-yon-seg').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  document.querySelectorAll('#f-yon-seg button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active');
+});
+function saveFatura(){
+  const cariId=document.getElementById('f-cari').value;
+  if(!cariId){ alert('Cari seçin (önce cari ekleyin)'); return; }
+  const yon=document.querySelector('#f-yon-seg button.active').dataset.v;
+  const no=document.getElementById('f-no').value.trim();
+  const icerik=document.getElementById('f-icerik').value.trim();
+  const tarih=document.getElementById('f-tarih').value || today();
+  const vade=document.getElementById('f-vade').value || tarih;
+  const tutar=Number(document.getElementById('f-tutar').value);
+  if(!tutar || tutar<=0){ alert('Geçerli bir tutar girin'); return; }
+  state.faturalar.push({id:uid(), cariId, yon, faturaNo:no, icerik, tarih, vade, tutar, odemeler:[]});
+  save();
+  ['f-no','f-icerik','f-tutar'].forEach(id=>document.getElementById(id).value='');
+  closeModal('modalFatura'); render();
+  if(currentCariDetayId) renderCariDetay(currentCariDetayId);
+}
+let faturaFilter='hepsi';
+document.getElementById('fatura-filter').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  document.querySelectorAll('#fatura-filter button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); faturaFilter=e.target.dataset.f; renderFaturalar();
+});
+function faturaCardHtml(f){
+  const k=kalan(f); const o=odenen(f); const durum=faturaDurum(f); const dd=dayDiff(f.vade);
+  let badge = durum==='odendi' ? '<span class="badge odendi">🟢 Ödendi</span>'
+    : durum==='kismi' ? '<span class="badge kismi">🔵 Kısmi Ödendi</span>'
+    : (dd<0 ? `<span class="badge gecikmis">🔴 ${Math.abs(dd)} gün gecikmiş</span>` : (dd<=7 ? `<span class="badge yaklasan">🟡 ${dd} gün sonra</span>` : '<span class="badge bekliyor">Bekliyor</span>'));
+  const pct = f.tutar>0 ? Math.min(100, (o/f.tutar)*100) : 0;
+  return `<div class="card">
+    <div class="row" style="border:none;padding:0">
+      <div>
+        <div class="name">${cariAd(f.cariId)} ${f.faturaNo?'· #'+f.faturaNo:''}</div>
+        <div class="sub" style="white-space:normal;line-height:1.5">${f.icerik? nl2br(f.icerik) : '(açıklama yok)'}</div>
+        <div class="sub">Vade: ${fmtDate(f.vade)}</div>
+        ${badge}
+      </div>
+      <div class="amt ${f.yon==='giden'?'green':'red'}">${money(f.tutar)}</div>
+    </div>
+    ${o>0? `<div class="progress"><div style="width:${pct}%"></div></div><div class="mini-hist">Ödenen: ${money(o)} · Kalan: ${money(k)}</div>`:''}
+    ${k>0.001? `<button class="btn secondary" style="margin-top:10px" onclick="openOdemeForFatura('${f.id}')">${f.yon==='giden'?'💰 Tahsilat Kaydet':'💸 Ödeme Kaydet'}</button>`:''}
+  </div>`;
+}
+function renderFaturalar(){
+  const el=document.getElementById('faturalar-list');
+  let list=state.faturalar.slice();
+  if(faturaFilter==='giden') list=list.filter(f=>f.yon==='giden');
+  else if(faturaFilter==='gelen') list=list.filter(f=>f.yon==='gelen');
+  else if(faturaFilter==='gecikmis') list=list.filter(f=>kalan(f)>0.001 && dayDiff(f.vade)<0);
+  else if(faturaFilter==='acik') list=list.filter(f=>kalan(f)>0.001);
+  list.sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+  el.innerHTML = list.length? list.map(faturaCardHtml).join('') : '<div class="empty">Kayıt yok</div>';
+}
+
+// ---------- ODEME ----------
+let odemeTargetFaturaId=null;
+function openOdemeForFatura(fid){
+  odemeTargetFaturaId=fid;
+  const f=state.faturalar.find(x=>x.id===fid);
+  document.getElementById('odeme-title').textContent = f.yon==='giden' ? 'Tahsilat Kaydet' : 'Ödeme Kaydet';
+  document.getElementById('odeme-fatura-info').innerHTML = `${cariAd(f.cariId)} · ${f.icerik||''}<br>Kalan: ${money(kalan(f))}`;
+  document.getElementById('o-tarih').value=today();
+  document.getElementById('o-tutar').value=kalan(f);
+  openModal('modalOdeme');
+}
+function openOdemeGeneric(){
+  const acik=state.faturalar.filter(f=>kalan(f)>0.001).sort((a,b)=>(a.vade||'').localeCompare(b.vade||''));
+  const el=document.getElementById('fatura-secim-list');
+  if(!acik.length){ el.innerHTML='<div class="empty">Açık fatura yok</div>'; }
+  else{
+    el.innerHTML = '<div class="card">'+acik.map(f=>`<div class="row" style="cursor:pointer" onclick="closeModal('modalFaturaSecim');openOdemeForFatura('${f.id}')">
+      <div><div class="name">${cariAd(f.cariId)}</div><div class="sub">${f.icerik||''} · Vade ${fmtDate(f.vade)}</div></div>
+      <div class="amt ${f.yon==='giden'?'green':'red'}">${money(kalan(f))}</div>
+    </div>`).join('')+'</div>';
+  }
+  openModal('modalFaturaSecim');
+}
+function saveOdeme(){
+  const f=state.faturalar.find(x=>x.id===odemeTargetFaturaId);
+  if(!f) return;
+  const tutar=Number(document.getElementById('o-tutar').value);
+  if(!tutar || tutar<=0){ alert('Geçerli tutar girin'); return; }
+  const tarih=document.getElementById('o-tarih').value || today();
+  const yontem=document.getElementById('o-yontem').value;
+  const aciklama=document.getElementById('o-aciklama').value.trim();
+  if(!f.odemeler) f.odemeler=[];
+  f.odemeler.push({tarih, tutar, yontem, aciklama});
+  save();
+  document.getElementById('o-aciklama').value='';
+  closeModal('modalOdeme'); render();
+  if(currentCariDetayId) renderCariDetay(currentCariDetayId);
+}
+
+// ---------- HAREKETLER (tahsilat/odeme tab) ----------
+function renderTahsilat(){
+  const el=document.getElementById('tahsilat-list');
+  let hareketler=[];
+  state.faturalar.forEach(f=>(f.odemeler||[]).forEach((o,i)=>hareketler.push({f,o,i})));
+  hareketler.sort((a,b)=>(b.o.tarih||'').localeCompare(a.o.tarih||''));
+  el.innerHTML = `<button class="btn" style="margin-bottom:14px" onclick="openOdemeGeneric()">+ Yeni Tahsilat / Ödeme</button>` +
+    (hareketler.length ? '<div class="card">'+hareketler.map(h=>`
+      <div class="row"><div>
+        <div class="name">${cariAd(h.f.cariId)} <span class="badge ${h.f.yon==='giden'?'odendi':'gecikmis'}">${h.f.yon==='giden'?'Tahsilat':'Ödeme'}</span></div>
+        <div class="sub">${fmtDate(h.o.tarih)} · ${h.o.yontem}${h.o.aciklama?' · '+h.o.aciklama:''} · Fatura: ${h.f.icerik||h.f.faturaNo||''}</div>
+      </div><div class="amt ${h.f.yon==='giden'?'green':'red'}">${money(h.o.tutar)}</div></div>
+    `).join('')+'</div>' : '<div class="empty">Henüz işlem yok</div>');
+}
+
+// ---------- RAPORLAR ----------
+function renderRaporlar(){
+  const el=document.getElementById('raporlar-content');
+  const musteriler=state.cariler.filter(c=>c.tip==='musteri').map(c=>({c,b:cariBakiye(c.id)})).filter(x=>x.b>0.001).sort((a,b)=>b.b-a.b);
+  const tedarikciler=state.cariler.filter(c=>c.tip==='tedarikci').map(c=>({c,b:cariBakiye(c.id)})).filter(x=>x.b<-0.001).sort((a,b)=>a.b-b.b);
+  const gecikmis=state.faturalar.filter(f=>kalan(f)>0.001 && dayDiff(f.vade)<0);
+  const gecikmisAlacak=gecikmis.filter(f=>f.yon==='giden').reduce((s,f)=>s+kalan(f),0);
+  const gecikmisBorc=gecikmis.filter(f=>f.yon==='gelen').reduce((s,f)=>s+kalan(f),0);
+  const toplamTahsilat=state.faturalar.filter(f=>f.yon==='giden').reduce((s,f)=>s+odenen(f),0);
+  const toplamOdeme=state.faturalar.filter(f=>f.yon==='gelen').reduce((s,f)=>s+odenen(f),0);
+
+  function top(arr,label){
+    if(!arr.length) return `<div class="empty">${label} yok</div>`;
+    const max=Math.abs(arr[0].b)||1;
+    return arr.slice(0,8).map(x=>`<div class="row"><div class="name">${x.c.ad}</div><div class="amt">${money(Math.abs(x.b))}</div></div>
+      <div class="progress"><div style="width:${Math.abs(x.b)/max*100}%"></div></div>`).join('');
+  }
+
+  el.innerHTML = `
+    <div class="grid2">
+      <div class="stat"><div class="lbl">Toplam Tahsilat</div><div class="val green">${money(toplamTahsilat)}</div></div>
+      <div class="stat"><div class="lbl">Toplam Ödeme</div><div class="val red">${money(toplamOdeme)}</div></div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="stat"><div class="lbl">Gecikmiş Alacak</div><div class="val red">${money(gecikmisAlacak)}</div></div>
+      <div class="stat"><div class="lbl">Gecikmiş Borç</div><div class="val red">${money(gecikmisBorc)}</div></div>
+    </div>
+    <div class="section-title">En Yüksek Alacaklı Müşteriler</div>
+    <div class="card">${top(musteriler,'Alacaklı müşteri')}</div>
+    <div class="section-title">En Yüksek Borçlu Olduğumuz Tedarikçiler</div>
+    <div class="card">${top(tedarikciler,'Borçlu tedarikçi')}</div>
+  `;
+}
+
+// ---------- INIT ----------
+document.getElementById('f-tarih')?.setAttribute('value', today());
+render();
+
+// ---------- SERVICE WORKER (offline + ana ekrana ekle) ----------
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
