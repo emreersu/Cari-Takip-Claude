@@ -134,6 +134,15 @@ a.linklike{color:var(--accent);font-size:13px;}
 <div class="page" id="page-raporlar">
   <div class="topbar"><h1>Raporlar</h1></div>
   <div style="padding:0 16px" id="raporlar-content"></div>
+  <div style="padding:0 16px 20px">
+    <div class="section-title">Veri Yönetimi</div>
+    <div class="card">
+      <div class="sub" style="margin-bottom:12px">Tüm cari ve fatura verilerini tek dosya olarak indirip, telefon değiştirdiğinde ya da yeni kurulumda geri yükleyebilirsin.</div>
+      <button class="btn secondary" style="margin-bottom:10px" onclick="exportData()">📤 Yedek Al (Dışa Aktar)</button>
+      <button class="btn secondary" onclick="document.getElementById('import-file').click()">📥 Yedek Yükle (İçe Aktar)</button>
+      <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(this.files[0])">
+    </div>
+  </div>
 </div>
 
 <button class="fab" id="fabBtn">+</button>
@@ -566,6 +575,40 @@ function renderRaporlar(){
     <div class="section-title">En Yüksek Borçlu Olduğumuz Tedarikçiler</div>
     <div class="card">${top(tedarikciler,'Borçlu tedarikçi')}</div>
   `;
+}
+
+// ---------- YEDEK AL / YEDEK YÜKLE ----------
+function exportData(){
+  const payload = { app:'cari-takip', version:1, exportedAt:new Date().toISOString(), data:state };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = today().replace(/-/g,'');
+  a.href = url; a.download = `cari-takip-yedek-${ts}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function importData(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try{ parsed = JSON.parse(reader.result); }
+    catch(e){ alert('Dosya okunamadı. Geçerli bir yedek dosyası seçtiğinden emin ol.'); return; }
+    const incoming = parsed && parsed.data && Array.isArray(parsed.data.cariler) && Array.isArray(parsed.data.faturalar)
+      ? parsed.data
+      : (Array.isArray(parsed.cariler) && Array.isArray(parsed.faturalar) ? parsed : null);
+    if(!incoming){ alert('Bu dosya bir Cari Takip yedeği gibi görünmüyor.'); return; }
+    const ok = confirm(`Bu yedekte ${incoming.cariler.length} cari ve ${incoming.faturalar.length} fatura var.\n\nMevcut verilerin ÜZERİNE YAZILACAK. Emin misin?`);
+    if(!ok) return;
+    state = { cariler: incoming.cariler, faturalar: incoming.faturalar };
+    save();
+    currentCariDetayId = null;
+    document.getElementById('import-file').value='';
+    render();
+    alert('Yedek başarıyla yüklendi.');
+  };
+  reader.readAsText(file);
 }
 
 // ---------- INIT ----------
