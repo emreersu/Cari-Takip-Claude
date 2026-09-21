@@ -159,7 +159,7 @@ a.linklike{color:var(--accent);font-size:13px;}
 <div class="modal-bg" id="modalCari">
   <div class="modal">
     <button class="close-x" onclick="closeModal('modalCari')">✕</button>
-    <h3>Yeni Cari</h3>
+    <h3 id="modalCariTitle">Yeni Cari</h3>
     <label>Ad Soyad / Firma</label><input id="c-ad" placeholder="Örn. ABC Elektrik">
     <label>Tip</label>
     <div class="seg" id="c-tip-seg"><button data-v="musteri" class="active">Müşteri</button><button data-v="tedarikci">Tedarikçi</button></div>
@@ -172,7 +172,7 @@ a.linklike{color:var(--accent);font-size:13px;}
 <div class="modal-bg" id="modalFatura">
   <div class="modal">
     <button class="close-x" onclick="closeModal('modalFatura')">✕</button>
-    <h3>Yeni Fatura</h3>
+    <h3 id="modalFaturaTitle">Yeni Fatura</h3>
     <label>Yön</label>
     <div class="seg" id="f-yon-seg">
       <button data-v="giden" class="active">Kestiğim (Alacak)</button>
@@ -207,9 +207,9 @@ a.linklike{color:var(--accent);font-size:13px;}
   <div class="modal">
     <button class="close-x" onclick="closeModal('modalYeniHareket')">✕</button>
     <h3>Ne eklemek istersin?</h3>
-    <button class="btn" style="margin-bottom:10px" onclick="closeModal('modalYeniHareket');openModal('modalFatura');fillCariSelect();">🧾 Yeni Fatura</button>
+    <button class="btn" style="margin-bottom:10px" onclick="closeModal('modalYeniHareket');resetFaturaModalNew();openModal('modalFatura');">🧾 Yeni Fatura</button>
     <button class="btn secondary" style="margin-bottom:10px" onclick="closeModal('modalYeniHareket');openOdemeGeneric();">💸 Tahsilat / Ödeme Kaydet</button>
-    <button class="btn secondary" onclick="closeModal('modalYeniHareket');openModal('modalCari');">👤 Yeni Cari</button>
+    <button class="btn secondary" onclick="closeModal('modalYeniHareket');resetCariModalNew();openModal('modalCari');">👤 Yeni Cari</button>
   </div>
 </div>
 
@@ -231,6 +231,9 @@ function load(){
 function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
 let state = load();
 let currentCariDetayId = null;
+let editCariId = null;
+let editFaturaId = null;
+let odemeEditIndex = null;
 
 // ---------- HELPERS ----------
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -390,7 +393,10 @@ function renderCariDetay(id){
       <div class="lbl">${bakiye>=0?'Sizden Alacağınız':'Ona Borcunuz'}</div>
       <div class="val ${bakiye>0?'green':(bakiye<0?'red':'')}">${money(Math.abs(bakiye))}</div>
     </div>
-    <button class="btn" onclick="preselectCari('${id}')" style="margin-bottom:14px">+ Bu Cariye Fatura Ekle</button>
+    <div class="grid2" style="margin-bottom:14px">
+      <button class="btn" onclick="preselectCari('${id}')">+ Fatura Ekle</button>
+      <button class="btn secondary" onclick="openCariEdit('${id}')">✏️ Bilgileri Düzenle</button>
+    </div>
     <div class="section-title">Fatura Geçmişi</div>
     ${faturalar.length? faturalar.map(f=>faturaCardHtml(f)).join('') : '<div class="empty">Fatura yok</div>'}
     ${c.not? `<div class="section-title">Not</div><div class="card">${c.not}</div>`:''}
@@ -403,7 +409,7 @@ function deleteCari(id){
   state.faturalar=state.faturalar.filter(f=>f.cariId!==id);
   save(); currentCariDetayId=null; goTab('cariler');
 }
-function preselectCari(id){ openModal('modalFatura'); fillCariSelect(id); }
+function preselectCari(id){ resetFaturaModalNew(id); openModal('modalFatura'); }
 
 // cari modal
 document.getElementById('c-tip-seg').addEventListener('click',e=>{
@@ -411,16 +417,41 @@ document.getElementById('c-tip-seg').addEventListener('click',e=>{
   document.querySelectorAll('#c-tip-seg button').forEach(b=>b.classList.remove('active'));
   e.target.classList.add('active');
 });
+function resetCariModalNew(){
+  editCariId=null;
+  document.getElementById('modalCariTitle').textContent='Yeni Cari';
+  document.getElementById('c-ad').value='';
+  document.querySelectorAll('#c-tip-seg button').forEach(b=>b.classList.toggle('active', b.dataset.v==='musteri'));
+  document.getElementById('c-tel').value='';
+  document.getElementById('c-not').value='';
+}
+function openCariEdit(id){
+  const c=cariById(id); if(!c) return;
+  editCariId=id;
+  document.getElementById('modalCariTitle').textContent='Cariyi Düzenle';
+  document.getElementById('c-ad').value=c.ad;
+  document.querySelectorAll('#c-tip-seg button').forEach(b=>b.classList.toggle('active', b.dataset.v===c.tip));
+  document.getElementById('c-tel').value=c.telefon||'';
+  document.getElementById('c-not').value=c.not||'';
+  openModal('modalCari');
+}
 function saveCari(){
   const ad=document.getElementById('c-ad').value.trim();
   if(!ad){ alert('Ad girin'); return; }
   const tip=document.querySelector('#c-tip-seg button.active').dataset.v;
   const tel=document.getElementById('c-tel').value.trim();
   const not=document.getElementById('c-not').value.trim();
-  state.cariler.push({id:uid(), ad, tip, telefon:tel, not});
+  if(editCariId){
+    const c=cariById(editCariId);
+    if(c){ c.ad=ad; c.tip=tip; c.telefon=tel; c.not=not; }
+  } else {
+    state.cariler.push({id:uid(), ad, tip, telefon:tel, not});
+  }
   save();
+  editCariId=null;
   document.getElementById('c-ad').value=''; document.getElementById('c-tel').value=''; document.getElementById('c-not').value='';
   closeModal('modalCari'); render();
+  if(currentCariDetayId) renderCariDetay(currentCariDetayId);
 }
 
 // ---------- FATURALAR ----------
@@ -436,6 +467,36 @@ document.getElementById('f-yon-seg').addEventListener('click',e=>{
   document.querySelectorAll('#f-yon-seg button').forEach(b=>b.classList.remove('active'));
   e.target.classList.add('active');
 });
+function resetFaturaModalNew(preId){
+  editFaturaId=null;
+  document.getElementById('modalFaturaTitle').textContent='Yeni Fatura';
+  fillCariSelect(preId);
+  document.querySelectorAll('#f-yon-seg button').forEach(b=>b.classList.toggle('active', b.dataset.v==='giden'));
+  document.getElementById('f-no').value='';
+  document.getElementById('f-icerik').value='';
+  document.getElementById('f-tarih').value=today();
+  document.getElementById('f-vade').value='';
+  document.getElementById('f-tutar').value='';
+}
+function openFaturaEdit(id){
+  const f=state.faturalar.find(x=>x.id===id); if(!f) return;
+  editFaturaId=id;
+  document.getElementById('modalFaturaTitle').textContent='Faturayı Düzenle';
+  fillCariSelect(f.cariId);
+  document.querySelectorAll('#f-yon-seg button').forEach(b=>b.classList.toggle('active', b.dataset.v===f.yon));
+  document.getElementById('f-no').value=f.faturaNo||'';
+  document.getElementById('f-icerik').value=f.icerik||'';
+  document.getElementById('f-tarih').value=f.tarih||today();
+  document.getElementById('f-vade').value=f.vade||'';
+  document.getElementById('f-tutar').value=f.tutar;
+  openModal('modalFatura');
+}
+function deleteFatura(id){
+  if(!confirm('Bu faturayı ve ilgili tüm ödeme/tahsilat kayıtlarını silmek istiyor musun?')) return;
+  state.faturalar = state.faturalar.filter(f=>f.id!==id);
+  save(); render();
+  if(currentCariDetayId) renderCariDetay(currentCariDetayId);
+}
 function saveFatura(){
   const cariId=document.getElementById('f-cari').value;
   if(!cariId){ alert('Cari seçin (önce cari ekleyin)'); return; }
@@ -446,8 +507,17 @@ function saveFatura(){
   const vade=document.getElementById('f-vade').value || tarih;
   const tutar=Number(document.getElementById('f-tutar').value);
   if(!tutar || tutar<=0){ alert('Geçerli bir tutar girin'); return; }
-  state.faturalar.push({id:uid(), cariId, yon, faturaNo:no, icerik, tarih, vade, tutar, odemeler:[]});
+  if(editFaturaId){
+    const f=state.faturalar.find(x=>x.id===editFaturaId);
+    if(!f){ editFaturaId=null; closeModal('modalFatura'); return; }
+    const odenmis=odenen(f);
+    if(tutar < odenmis - 0.001){ alert(`Bu faturaya zaten ${money(odenmis)} ödeme/tahsilat girilmiş. Tutarı bunun altına düşüremezsin.`); return; }
+    f.cariId=cariId; f.yon=yon; f.faturaNo=no; f.icerik=icerik; f.tarih=tarih; f.vade=vade; f.tutar=tutar;
+  } else {
+    state.faturalar.push({id:uid(), cariId, yon, faturaNo:no, icerik, tarih, vade, tutar, odemeler:[]});
+  }
   save();
+  editFaturaId=null;
   ['f-no','f-icerik','f-tutar'].forEach(id=>document.getElementById(id).value='');
   closeModal('modalFatura'); render();
   if(currentCariDetayId) renderCariDetay(currentCariDetayId);
@@ -474,7 +544,22 @@ function faturaCardHtml(f){
       </div>
       <div class="amt ${f.yon==='giden'?'green':'red'}">${money(f.tutar)}</div>
     </div>
-    ${o>0? `<div class="progress"><div style="width:${pct}%"></div></div><div class="mini-hist">Ödenen: ${money(o)} · Kalan: ${money(k)}</div>`:''}
+    <div style="margin-top:6px;font-size:12px">
+      <span class="linklike" style="cursor:pointer" onclick="openFaturaEdit('${f.id}')">✏️ Düzenle</span>
+      &nbsp;·&nbsp;
+      <span class="linklike" style="cursor:pointer;color:var(--red)" onclick="deleteFatura('${f.id}')">🗑️ Sil</span>
+    </div>
+    ${o>0? `<div class="progress"><div style="width:${pct}%"></div></div>
+      <div class="mini-hist" style="margin-bottom:2px">Ödenen: ${money(o)} · Kalan: ${money(k)}</div>
+      ${(f.odemeler||[]).map((p,i)=>`<div class="row" style="padding:6px 0">
+          <div><div class="sub">${fmtDate(p.tarih)} · ${p.yontem}${p.aciklama?' · '+esc(p.aciklama):''}</div></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="amt" style="font-size:13px">${money(p.tutar)}</div>
+            <span class="linklike" style="cursor:pointer" onclick="openOdemeEditEntry('${f.id}', ${i})">✏️</span>
+            <span class="linklike" style="cursor:pointer;color:var(--red)" onclick="deleteOdeme('${f.id}', ${i})">🗑️</span>
+          </div>
+        </div>`).join('')}
+    ` : ''}
     ${k>0.001? `<button class="btn secondary" style="margin-top:10px" onclick="openOdemeForFatura('${f.id}')">${f.yon==='giden'?'💰 Tahsilat Kaydet':'💸 Ödeme Kaydet'}</button>`:''}
   </div>`;
 }
@@ -493,12 +578,35 @@ function renderFaturalar(){
 let odemeTargetFaturaId=null;
 function openOdemeForFatura(fid){
   odemeTargetFaturaId=fid;
+  odemeEditIndex=null;
   const f=state.faturalar.find(x=>x.id===fid);
   document.getElementById('odeme-title').textContent = f.yon==='giden' ? 'Tahsilat Kaydet' : 'Ödeme Kaydet';
   document.getElementById('odeme-fatura-info').innerHTML = `${cariAd(f.cariId)} · ${f.icerik||''}<br>Kalan: ${money(kalan(f))}`;
   document.getElementById('o-tarih').value=today();
   document.getElementById('o-tutar').value=kalan(f);
+  document.getElementById('o-yontem').value='Banka';
+  document.getElementById('o-aciklama').value='';
   openModal('modalOdeme');
+}
+function openOdemeEditEntry(fid, idx){
+  const f=state.faturalar.find(x=>x.id===fid); if(!f) return;
+  const p=f.odemeler[idx]; if(!p) return;
+  odemeTargetFaturaId=fid;
+  odemeEditIndex=idx;
+  document.getElementById('odeme-title').textContent = 'Kaydı Düzenle';
+  document.getElementById('odeme-fatura-info').innerHTML = `${cariAd(f.cariId)} · ${f.icerik||''}`;
+  document.getElementById('o-tarih').value=p.tarih;
+  document.getElementById('o-tutar').value=p.tutar;
+  document.getElementById('o-yontem').value=p.yontem;
+  document.getElementById('o-aciklama').value=p.aciklama||'';
+  openModal('modalOdeme');
+}
+function deleteOdeme(fid, idx){
+  if(!confirm('Bu ödeme/tahsilat kaydını silmek istiyor musun?')) return;
+  const f=state.faturalar.find(x=>x.id===fid); if(!f) return;
+  f.odemeler.splice(idx,1);
+  save(); render();
+  if(currentCariDetayId) renderCariDetay(currentCariDetayId);
 }
 function openOdemeGeneric(){
   const acik=state.faturalar.filter(f=>kalan(f)>0.001).sort((a,b)=>(a.vade||'').localeCompare(b.vade||''));
@@ -521,8 +629,19 @@ function saveOdeme(){
   const yontem=document.getElementById('o-yontem').value;
   const aciklama=document.getElementById('o-aciklama').value.trim();
   if(!f.odemeler) f.odemeler=[];
-  f.odemeler.push({tarih, tutar, yontem, aciklama});
+  // bu ödeme hariç zaten ödenmiş toplam + yeni tutar, fatura toplamını aşmasın
+  const digerToplam = f.odemeler.reduce((s,o,i)=> i===odemeEditIndex ? s : s+Number(o.tutar), 0);
+  if(digerToplam + tutar > Number(f.tutar) + 0.001){
+    alert(`Bu tutar fatura toplamını aşıyor. Kalan ödenebilir: ${money(Number(f.tutar)-digerToplam)}`);
+    return;
+  }
+  if(odemeEditIndex!==null){
+    f.odemeler[odemeEditIndex] = {tarih, tutar, yontem, aciklama};
+  } else {
+    f.odemeler.push({tarih, tutar, yontem, aciklama});
+  }
   save();
+  odemeEditIndex=null;
   document.getElementById('o-aciklama').value='';
   closeModal('modalOdeme'); render();
   if(currentCariDetayId) renderCariDetay(currentCariDetayId);
